@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.langage_trainer">
    <application
-        android:label="langage_trainer"
+        android:label="language_trainer"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
