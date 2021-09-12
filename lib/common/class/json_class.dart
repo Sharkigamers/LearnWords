@@ -14,7 +14,7 @@ class JsonClass {
     return File('$path/vocabulary.class');
   }
 
-  Future<bool> writeToJsonVocabulary(List<Map<String, dynamic>>? words) async {
+  Future<bool> writeToJsonVocabulary(Map<String, List<Map<String, dynamic>>>? words) async {
     final File file = await _localFile;
     if (words != null) {
       file.writeAsString(jsonEncode(words));

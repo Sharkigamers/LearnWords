@@ -17,11 +17,6 @@ class VocabularyTextBox extends StatefulWidget {
 
 class _VocabularyTextBoxState extends State<VocabularyTextBox> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) => Container(
     child: Column(
       crossAxisAlignment: widget.alignmentColumn,

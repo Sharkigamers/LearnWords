@@ -1,21 +1,31 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:langage_trainer/common/animations/pageTransition/navigatorTransition.dart';
-import 'package:langage_trainer/common/textfield/default_textfield.dart';
 
 import 'dart:math';
+import 'package:flutter/services.dart';
+
+import 'package:langage_trainer/common/animations/pageTransition/navigatorTransition.dart';
+import 'package:langage_trainer/common/textfield/default_textfield.dart';
 
 import 'package:langage_trainer/pages/question/type_page.dart';
 
 class QuestionPage extends StatefulWidget {
+  final Map<String, List<Map<String, dynamic>>>? allWords;
   final List<Map<String, dynamic>>? words;
   final Map<String, List<Map<String, dynamic>>>? score;
 
   final updateScore;
+  final updateWords;
+  final writeToJson;
 
   const QuestionPage({
+    @required this.allWords,
     @required this.words,
     @required this.score,
     @required this.updateScore,
+    @required this.updateWords,
+    this.writeToJson,
     Key? key
   }) : super(key: key);
 
@@ -31,6 +41,8 @@ class _QuestionPageState extends State<QuestionPage> {
   bool? _responseValidation;
 
   TextEditingController _textEditingController = TextEditingController();
+
+  TextEditingController _importController = TextEditingController();
 
   @override
   void initState() {
@@ -73,6 +85,16 @@ class _QuestionPageState extends State<QuestionPage> {
             color: Colors.white
         ),
       ),
+      actions: [
+        IconButton(
+          onPressed: () => _export(),
+          icon: Icon(Icons.upload_rounded)
+        ),
+        IconButton(
+            onPressed: () => _import(),
+            icon: Icon(Icons.download_rounded)
+        ),
+      ],
     ),
   );
 
@@ -83,7 +105,7 @@ class _QuestionPageState extends State<QuestionPage> {
       children: <Widget>[
         _textBox(
             widget.words != null && widget.words!.length > 0 &&
-                _selectedRandomWord <= widget.words!.length ?
+            _selectedRandomWord <= widget.words!.length ?
             widget.words![_selectedRandomWord].values.elementAt(_selectedRandomTranslation) :
             'No value has already been set'
         ),
@@ -97,22 +119,24 @@ class _QuestionPageState extends State<QuestionPage> {
           _response(),
         if (_responseValidation == null)
           _passButton(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Container>[
-            _scoreButton(
-                type: 'good',
-                color: Colors.green
-            ),
-            _scoreButton(
-                type: 'pass',
-                color: Colors.orange
-            ),
-            _scoreButton(
-                type: 'wrong',
-                color: Colors.red
-            ),
-          ],
+        Container(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Container>[
+              _scoreButton(
+                  type: 'good',
+                  color: Colors.green
+              ),
+              _scoreButton(
+                  type: 'pass',
+                  color: Colors.orange
+              ),
+              _scoreButton(
+                  type: 'wrong',
+                  color: Colors.red
+              ),
+            ],
+          ),
         )
       ],
     ),
@@ -138,26 +162,10 @@ class _QuestionPageState extends State<QuestionPage> {
   );
 
   Container _validationButton() => Container(
-    margin: EdgeInsets.only(bottom: 20),
+    margin: const EdgeInsets.only(bottom: 20),
     child: ElevatedButton(
         onPressed: () {
-          if (_textEditingController.text != '' && _responseValidation == null) {
-            if (FocusScope.of(context).hasFocus)
-              FocusScope.of(context).unfocus();
-            if ((_selectedRandomTranslation == 1 &&
-                widget.words![_selectedRandomWord].values.elementAt(0).toLowerCase() ==
-                    _textEditingController.text.toLowerCase()) ||
-                (_selectedRandomTranslation == 0 && widget.words!.length > 0 &&
-                    widget.words![_selectedRandomWord].values.elementAt(1).toLowerCase() ==
-                        _textEditingController.text.toLowerCase())) {
-              widget.updateScore('good', widget.words![_selectedRandomWord]);
-              _responseValidation = true;
-            } else if (widget.words!.length > 0) {
-              widget.updateScore('wrong', widget.words![_selectedRandomWord]);
-              _responseValidation = false;
-            }
-            setState(() {});
-          }
+          _validation();
         },
         child: const Text(
           'Valider',
@@ -296,6 +304,127 @@ class _QuestionPageState extends State<QuestionPage> {
       ),
     ),
   );
+
+  Future _import() {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+          title: Text(
+            'Import',
+            style: TextStyle(
+                color: Colors.white
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: DefaultTextField(
+              textEditingController: _importController,
+              hintText: 'Set configuration to import',
+              maxLine: null,
+            )
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+              style: ElevatedButton.styleFrom(
+                  primary: Colors.red
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (widget.allWords != null) {
+                  Map<String, List<Map<String, dynamic>>> tmp = {}..addAll(widget.allWords!)..addAll(
+                    (jsonDecode(_importController.text) as Map).map((key, value) =>
+                        MapEntry(key, (value as List).map((e) =>
+                        e as Map<String, dynamic>).toList())));
+                  if (widget.updateWords != null)
+                    widget.updateWords(tmp);
+                  if (widget.writeToJson != null)
+                    widget.writeToJson(tmp);
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+              style: ElevatedButton.styleFrom(
+                  primary: Colors.green
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future _export() {
+    String textToExport = jsonEncode(widget.allWords).toString();
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+          title: Text(
+            'Export',
+            style: TextStyle(
+                color: Colors.white
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              textToExport,
+              style: TextStyle(
+                  color: Colors.white
+              ),
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+              style: ElevatedButton.styleFrom(
+                  primary: Colors.red
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: textToExport));
+                Navigator.of(context).pop();
+              },
+              child: Text('Copy'),
+              style: ElevatedButton.styleFrom(
+                  primary: Colors.green
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _validation() {
+    if (_textEditingController.text != '' && _responseValidation == null) {
+      if (FocusScope.of(context).hasFocus)
+        FocusScope.of(context).unfocus();
+      if ((_selectedRandomTranslation == 1 &&
+      widget.words![_selectedRandomWord].values.elementAt(0).toLowerCase() ==
+      _textEditingController.text.toLowerCase()) ||
+      (_selectedRandomTranslation == 0 && widget.words!.length > 0 &&
+      widget.words![_selectedRandomWord].values.elementAt(1).toLowerCase() ==
+      _textEditingController.text.toLowerCase())) {
+        widget.updateScore('good', widget.words![_selectedRandomWord]);
+        _responseValidation = true;
+      } else if (widget.words!.length > 0) {
+        widget.updateScore('wrong', widget.words![_selectedRandomWord]);
+        _responseValidation = false;
+      }
+      setState(() {});
+    }
+  }
 
   void _chargeNewWord() {
     if (widget.words != null && widget.words!.length > 0)

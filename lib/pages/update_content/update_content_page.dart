@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 
 import 'package:langage_trainer/common/animations/pageTransition/navigatorTransition.dart';
+import 'package:langage_trainer/common/class/utils.dart';
 import 'package:langage_trainer/common/text_box/vocabulary_text_box.dart';
+import 'package:langage_trainer/common/textfield/default_textfield.dart';
+import 'package:langage_trainer/pages/update_content/create_words/create_words_page.dart';
 import 'package:langage_trainer/pages/update_content/vocabulary_modifier_page.dart';
 
 class UpdateContentPage extends StatefulWidget {
-  final List<Map<String, dynamic>>? words;
+  final Map<String, List<Map<String, dynamic>>>? words;
 
   final updateWords;
   final writeToJson;
@@ -25,19 +28,44 @@ class UpdateContentPage extends StatefulWidget {
 }
 
 class _UpdateContentPageState extends State<UpdateContentPage> {
+  static const List<Tab> _tabs = [
+    const Tab(
+        icon: const Icon(
+          Icons.menu_book,
+        )
+    ),
+    const Tab(
+      icon: const Icon(
+        Icons.edit,
+      ),
+    ),
+  ];
+
+  TextEditingController _searchCategoryController = TextEditingController();
+  String _searchValue = '';
+
   bool _hasModified = false;
 
-  List<Map<String, dynamic>> words = [];
-  List<Map<String, dynamic>> _oldWords = [];
+  Map<String, List<Map<String, dynamic>>> words = {};
+  Map<String, List<Map<String, dynamic>>> _oldWords = {};
+
+  @override
+  void dispose() {
+    print(widget.words);
+    super.dispose();
+  }
 
   @override
   void initState() {
-    if (widget.words != null) {
-      words = widget.words!;
-      _oldWords = (jsonDecode(jsonEncode(widget.words!)) as List)
-          .map((e) => e as Map<String, dynamic>).toList();
-    }
     super.initState();
+    if (widget.words != null) {
+      words = (jsonDecode(jsonEncode(widget.words!)) as Map).map((key, value) =>
+          MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+      );
+      _oldWords = (jsonDecode(jsonEncode(words)) as Map).map((key, value) =>
+          MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+      );
+    }
   }
 
   @override
@@ -49,8 +77,8 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
         appBar: _appBar(),
         body: TabBarView(
           children: [
-            _visualisation(),
-            Icon(Icons.directions_transit),
+            _updateContentPage(),
+            CreateWordsPage(createContent: _createContent)
           ],
         ),
       ),
@@ -68,108 +96,161 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
         ),
       ),
       bottom: const TabBar(
-        tabs: [
-          Tab(
-            icon: Icon(
-              Icons.menu_book,
-            )
-          ),
-          Tab(
-            icon: Icon(
-              Icons.edit,
-            ),
-          ),
-        ],
+        tabs: _tabs
       ),
-      actions: _hasModified ? [
+      actions: _actions(),
+    ),
+  );
+
+  List<Widget>? _actions() {
+    if (_hasModified)
+      return [
         IconButton(
           onPressed: () {
             setState(() {
               _hasModified = false;
-              words = (jsonDecode(jsonEncode(_oldWords)) as List)
-                  .map((e) => e as Map<String, dynamic>).toList();
+              words = (jsonDecode(jsonEncode(_oldWords)) as Map).map((key, value) =>
+                  MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+              );
             });
           },
-          icon: Icon(
+          icon: const Icon(
             Icons.clear,
             color: Colors.red,
           ),
         ),
         IconButton(
-          onPressed: () {
-            setState(() {
-              _hasModified = false;
-              _oldWords = (jsonDecode(jsonEncode(words)) as List)
-                  .map((e) => e as Map<String, dynamic>).toList();
-            });
-            widget.updateWords(_oldWords);
-            _writeToJson(_oldWords);
-          },
-          icon: Icon(
-            Icons.check,
-            color: Colors.white,
-          )
+            onPressed: () {
+              words.removeWhere((String key, List<Map<String, dynamic>> value) =>
+                value.length == 0
+              );
+              setState(() {
+                _hasModified = false;
+                Utils().clearDuplicate(words);
+                _oldWords = (jsonDecode(jsonEncode(words)) as Map).map((key, value) =>
+                    MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+                );
+              });
+              widget.updateWords(_oldWords);
+              _writeToJson(_oldWords);
+            },
+            icon: const Icon(
+              Icons.check,
+              color: Colors.white,
+            )
         ),
-      ] : null,
+      ];
+  }
+
+  Container _updateContentPage() => Container(
+    child: ListView(
+      children: [
+        Container(
+          margin: EdgeInsets.all(10),
+          child: DefaultTextField(
+              textEditingController: _searchCategoryController,
+              hintText: 'Filter by category',
+              getOnChangeValue: _getOnChangeValue
+          ),
+        ),
+        _visualisation()
+      ],
     ),
   );
 
   Container _visualisation() => Container(
-    color: Colors.black,
-    child: SingleChildScrollView(
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: words.length,
-        itemBuilder: (BuildContext build, int i) => Container(
-          margin: EdgeInsets.only(bottom: 5),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(200, 40, 40, 40),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: ListTile(
-            onTap: () {
-              Navigator.of(context).push(defaultNavigatorTransition(
-                  VocabularyModifierPage(
-                    words: words[i],
-                    updateValues: _updateVocabulary,
-                  )
-              ));
-            },
-            title: VocabularyTextBox(
-              vocabularyContent: words[i],
-            ),
-            trailing: _updateModification(i),
-          ),
-        )
-      ),
+    child: ListView.builder(
+      shrinkWrap: true,
+      physics: ClampingScrollPhysics(),
+      itemCount: words.length,
+      itemBuilder: (BuildContext build, int i) {
+        if (words.keys.elementAt(i).startsWith(_searchValue))
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: EdgeInsets.symmetric(
+                    vertical: 5,
+                    horizontal: 15
+                ),
+                child: SelectableText(
+                  words.keys.elementAt(i),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold
+                  ),
+                ),
+              ),
+              categoryBoxes(i),
+          ],
+        );
+        return Container();
+      }
     ),
   );
 
-  Container _updateModification(int i) => Container(
+  Container categoryBoxes(int i) => Container(
+    child: Column(
+        children: words[words.keys.elementAt(i)] != null &&
+            words[words.keys.elementAt(i)]!.length > 0 ?
+        words[words.keys.elementAt(i)]!.mapIndexed((index, element) =>
+            Container(
+              margin: const EdgeInsets.only(bottom: 5),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(200, 40, 40, 40),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                onTap: () {
+                  Navigator.of(context).push(defaultNavigatorTransition(
+                      VocabularyModifierPage(
+                        words: element,
+                        updateValues: _updateVocabulary,
+                      )
+                  ));
+                },
+                title: VocabularyTextBox(
+                  vocabularyContent: element,
+                ),
+                trailing: _updateModification(
+                    words[words.keys.elementAt(i)]!,
+                    index
+                ),
+              ),
+            )
+        ).toList() : []
+    ),
+  );
+
+  Container _updateModification(
+    List<Map<String, dynamic>> content,
+    int i
+  ) => Container(
     child: Wrap(
       children: [
         IconButton(
           onPressed: () {
-            if (words[i].containsKey('active'))
+            if (content[i].containsKey('active'))
               setState(() {
                 _hasModified = true;
-                words[i]['active'] = !words[i]['active'];
+                content[i]['active'] = !content[i]['active'];
               });
           },
           icon: Icon(
             Icons.desktop_access_disabled,
-            color: words[i].containsKey('active') &&
-                words[i]['active'] ? Colors.white : Colors.blue,
+            color: content[i].containsKey('active') &&
+                content[i]['active'] ? Colors.white : Colors.blue,
           ),
         ),
         IconButton(
           onPressed: () {
             setState(() {
               _hasModified = true;
-              words.removeAt(i);
+              content.removeAt(i);
             });
           },
-          icon: Icon(
+          icon: const Icon(
             Icons.clear,
             color: Colors.red,
           ),
@@ -182,29 +263,58 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
     Map<String, dynamic> oldValue,
     Map<String, dynamic> newValue,
   ) {
-    for (int i = 0; i < words.length; ++i) {
-      if (DeepCollectionEquality().equals(oldValue, words[i])) {
-        if (mounted)
-          setState(() {
-            _hasModified = true;
-            words[i].update(
-              oldValue.keys.elementAt(0),
-              (existingValue) => newValue.values.elementAt(0),
-              ifAbsent: () => newValue.values.elementAt(0),
-            );
-            words[i].update(
-              oldValue.keys.elementAt(1),
-              (existingValue) => newValue.values.elementAt(1),
-              ifAbsent: () => newValue.values.elementAt(1),
-            );
-          });
-        break;
-      }
+    for (int i = 0; i < words.length; ++i)
+      if (words[words.keys.elementAt(i)] != null)
+        for (int j = 0; j < words[words.keys.elementAt(i)]!.length; ++j) {
+          if (words[words.keys.elementAt(i)] != null &&
+            DeepCollectionEquality().equals(
+              oldValue,
+              words[words.keys.elementAt(i)]![j])
+          ) {
+            if (mounted)
+              setState(() {
+                _hasModified = true;
+                words[words.keys.elementAt(i)]![j].update(
+                  oldValue.keys.elementAt(0),
+                      (existingValue) => newValue.values.elementAt(0),
+                  ifAbsent: () => newValue.values.elementAt(0),
+                );
+                words[words.keys.elementAt(i)]![j].update(
+                  oldValue.keys.elementAt(1),
+                      (existingValue) => newValue.values.elementAt(1),
+                  ifAbsent: () => newValue.values.elementAt(1),
+                );
+              });
+            break;
+          }
+        }
+  }
+
+  void _writeToJson(Map<String, List<Map<String, dynamic>>> oldWords) async {
+    if (widget.writeToJson != null) {
+      await widget.writeToJson(oldWords);
     }
   }
 
-  void _writeToJson(List<Map<String, dynamic>> oldWords) async {
-    if (widget.writeToJson != null)
-      await widget.writeToJson(oldWords);
+  void _getOnChangeValue(String value) {
+    setState(() {
+      _searchValue = value;
+    });
+  }
+
+  void _createContent(Map<String, List<Map<String, dynamic>>> contentToAdd) {
+    if (words.containsKey(contentToAdd.keys.first) &&
+      words[contentToAdd.keys.first] != null &&
+      contentToAdd[contentToAdd.keys.first] != null &&
+      contentToAdd[contentToAdd.keys.first]!.length > 0
+    ) {
+      words[contentToAdd.keys.first]!.add(
+          contentToAdd[contentToAdd.keys.first]![0]);
+      _hasModified = true;
+    } else if (contentToAdd[contentToAdd.keys.first] != null) {
+      words[contentToAdd.keys.first] = contentToAdd[contentToAdd.keys.first]!;
+      _hasModified = true;
+    }
+    setState(() {});
   }
 }

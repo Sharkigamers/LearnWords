@@ -21,7 +21,7 @@ class Loader extends StatefulWidget {
 }
 
 class _LoaderState extends State<Loader> {
-  List<Map<String, dynamic>>? _words;
+  Map<String, List<Map<String, dynamic>>>? _words;
 
   @override
   void initState() {
@@ -32,8 +32,8 @@ class _LoaderState extends State<Loader> {
   @override
   Widget build(BuildContext context) {
     return _words != null ? HomePage(
-      words: _words,
-    ) : Scaffold(
+      words: _words
+    ) : const Scaffold(
       backgroundColor: Colors.green,
     );
   }
@@ -41,36 +41,17 @@ class _LoaderState extends State<Loader> {
   Future<void> _readJson() async {
     String? words = await JsonClass().readJsonVocabulary();
     if (words == null) {
-      final bool result = await JsonClass().writeToJsonVocabulary([
-        {
-          "French": "test1",
-          "Korean": "test2",
-          "active": true
-        },
-        {
-          "French": "test3",
-          "Korean": "test4",
-          "active": true
-        },
-        {
-          "French": "test5",
-          "Korean": "test6",
-          "active": true
-        },
-        {
-          "French": "test7",
-          "Korean": "test8",
-          "active": false
-        }
-      ]);
+      final bool result = await JsonClass().writeToJsonVocabulary({});
       if (result)
         words = await JsonClass().readJsonVocabulary();
       if (words != null)
-        _words = (json.decode(words) as List)
-            .map((e) => e as Map<String, dynamic>).toList();
+        _words = (jsonDecode(words) as Map).map((key, value) =>
+            MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+        );
     } else
-      _words = (json.decode(words) as List)
-          .map((e) => e as Map<String, dynamic>).toList();
+      _words = (jsonDecode(words) as Map).map((key, value) =>
+          MapEntry(key, (value as List).map((e) => e as Map<String, dynamic>).toList())
+      );
     setState(() {});
   }
 }

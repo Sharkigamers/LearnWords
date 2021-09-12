@@ -60,11 +60,11 @@ class _TypePageState extends State<TypePage> {
         children: widget.contentScore != null ? widget.contentScore!.map((content) =>
           Container(
             width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
                 vertical: 15,
                 horizontal: 50
             ),
-            margin: EdgeInsets.only(bottom: 5),
+            margin: const EdgeInsets.only(bottom: 5),
             decoration: BoxDecoration(
               color: const Color.fromARGB(200, 40, 40, 40),
               borderRadius: BorderRadius.circular(8),

@@ -65,15 +65,15 @@ class _VocabularyModifierPageState extends State<VocabularyModifierPage> {
         onPressed: () {
           Navigator.of(context).pop();
         },
-        icon: Icon(
+        icon: const Icon(
           Icons.arrow_back,
           color: Colors.white,
         ),
         iconSize: 22,
       ),
-      title: Text(
+      title: const Text(
         'Value Modifier',
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 18
         ),
@@ -115,7 +115,7 @@ class _VocabularyModifierPageState extends State<VocabularyModifierPage> {
           margin: EdgeInsets.only(left: 10, right: 10, bottom: 5),
           child: SelectableText(
             title,
-            style: TextStyle(
+            style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold
@@ -123,7 +123,7 @@ class _VocabularyModifierPageState extends State<VocabularyModifierPage> {
           ),
         ),
         Container(
-          margin: EdgeInsets.only(left: 5),
+          margin: const EdgeInsets.only(left: 5),
           child: DefaultTextField(
             hintText: 'Set a value',
             textEditingController: controller,
@@ -134,7 +134,7 @@ class _VocabularyModifierPageState extends State<VocabularyModifierPage> {
   );
 
   Container _validationButton() => Container(
-    margin: EdgeInsets.symmetric(vertical: 5),
+    margin: const EdgeInsets.symmetric(vertical: 5),
     child: ElevatedButton(
         onPressed: () {
           widget.updateValues(
