@@ -308,8 +308,10 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
       contentToAdd[contentToAdd.keys.first] != null &&
       contentToAdd[contentToAdd.keys.first]!.length > 0
     ) {
-      words[contentToAdd.keys.first]!.add(
-          contentToAdd[contentToAdd.keys.first]![0]);
+      words[contentToAdd.keys.first] = [
+        ...words[contentToAdd.keys.first]!,
+        ...contentToAdd[contentToAdd.keys.first]!
+      ];
       _hasModified = true;
     } else if (contentToAdd[contentToAdd.keys.first] != null) {
       words[contentToAdd.keys.first] = contentToAdd[contentToAdd.keys.first]!;
