@@ -42,18 +42,14 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
   ];
 
   TextEditingController _searchCategoryController = TextEditingController();
-  String _searchValue = '';
+  TextEditingController _searchWordController = TextEditingController();
+  String _searchCategory = '';
+  String _searchWord = '';
 
   bool _hasModified = false;
 
   Map<String, List<Map<String, dynamic>>> words = {};
   Map<String, List<Map<String, dynamic>>> _oldWords = {};
-
-  @override
-  void dispose() {
-    print(widget.words);
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -144,13 +140,21 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
 
   Container _updateContentPage() => Container(
     child: ListView(
-      children: [
+      children: <Container>[
         Container(
           margin: EdgeInsets.all(10),
           child: DefaultTextField(
               textEditingController: _searchCategoryController,
               hintText: 'Filter by category',
-              getOnChangeValue: _getOnChangeValue
+              getOnChangeValue: _getOnChangeCategoryValue
+          ),
+        ),
+        Container(
+          margin: EdgeInsets.all(10),
+          child: DefaultTextField(
+              textEditingController: _searchWordController,
+              hintText: 'Filter by word',
+              getOnChangeValue: _getOnChangeWordValue
           ),
         ),
         _visualisation()
@@ -164,7 +168,7 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
       physics: ClampingScrollPhysics(),
       itemCount: words.length,
       itemBuilder: (BuildContext build, int i) {
-        if (words.keys.elementAt(i).startsWith(_searchValue))
+        if (words.keys.elementAt(i).startsWith(_searchCategory))
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -194,8 +198,14 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
     child: Column(
         children: words[words.keys.elementAt(i)] != null &&
             words[words.keys.elementAt(i)]!.length > 0 ?
-        words[words.keys.elementAt(i)]!.mapIndexed((index, element) =>
-            Container(
+        words[words.keys.elementAt(i)]!.mapIndexed((index, element) {
+          if (element.values.length == 3 &&
+              (
+                element.values.elementAt(0).toString().startsWith(_searchWord) ||
+                element.values.elementAt(1).toString().startsWith(_searchWord)
+              )
+          )
+            return Container(
               margin: const EdgeInsets.only(bottom: 5),
               decoration: BoxDecoration(
                 color: const Color.fromARGB(200, 40, 40, 40),
@@ -218,8 +228,10 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
                     index
                 ),
               ),
-            )
-        ).toList() : []
+            );
+          else
+            return Container();
+        }).toList() : []
     ),
   );
 
@@ -294,9 +306,15 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
     }
   }
 
-  void _getOnChangeValue(String value) {
+  void _getOnChangeCategoryValue(String value) {
     setState(() {
-      _searchValue = value;
+      _searchCategory = value;
+    });
+  }
+
+  void _getOnChangeWordValue(String value) {
+    setState(() {
+      _searchWord = value;
     });
   }
 
