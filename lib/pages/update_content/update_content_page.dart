@@ -244,12 +244,10 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
           ),
         ),
         IconButton(
-          onPressed: () {
-            setState(() {
-              _hasModified = true;
-              content.removeAt(i);
-            });
-          },
+          onPressed: () => _confirmRemove(
+              content,
+              i
+          ),
           icon: const Icon(
             Icons.clear,
             color: Colors.red,
@@ -319,4 +317,52 @@ class _UpdateContentPageState extends State<UpdateContentPage> {
     }
     setState(() {});
   }
+
+  Future _confirmRemove(
+    List<Map<String, dynamic>> content,
+    int i
+  ) => showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+            title: Text(
+              'Remove',
+              style: TextStyle(
+                  color: Colors.white
+              ),
+            ),
+            content: Text(
+              'Are you sure ?',
+              style: TextStyle(
+                  color: Colors.white
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('No'),
+                style: ElevatedButton.styleFrom(
+                    primary: Colors.red
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _hasModified = true;
+                    content.removeAt(i);
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: Text('Yes'),
+                style: ElevatedButton.styleFrom(
+                    primary: Colors.green
+                ),
+              ),
+            ],
+          );
+        }
+    );
 }
